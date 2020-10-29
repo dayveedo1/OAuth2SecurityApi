@@ -6,7 +6,7 @@ public class CustomMessages {
     public static String NotFoundMessage = "Record Not Found";
     public static String Deleted = "Deleted";
     public static String DeletedMessage = "Record Deleted Successfully";
-
+    public static String Failed = "Failed";
 
     public static String AlreadyExist = "Record Already Exist";
 }

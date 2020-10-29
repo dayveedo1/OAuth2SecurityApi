@@ -4,6 +4,7 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "user")
@@ -62,7 +63,7 @@ public class User implements Serializable{
             {@JoinColumn(name = "USER_ID", referencedColumnName = "ID")},
             inverseJoinColumns = {
                 @JoinColumn(name = "ROLE_ID", referencedColumnName = "ID")})
-    private List<Role> roles;
+    private Set<Role> roles;
 
     public User() {
     }
@@ -205,11 +206,11 @@ public class User implements Serializable{
         this.dateCreated = dateCreated;
     }
 
-    public List<Role> getRoles() {
+    public Set<Role> getRoles() {
         return roles;
     }
 
-    public void setRoles(List<Role> roles) {
+    public void setRoles(Set<Role> roles) {
         this.roles = roles;
     }
 

@@ -4,8 +4,12 @@ import com.david.SecurityApi.constants.ApiResponse;
 import com.david.SecurityApi.constants.CustomMessages;
 import com.david.SecurityApi.dto.LoginRequest;
 import com.david.SecurityApi.dto.UserDto;
+import com.david.SecurityApi.exceptions.CustomException;
 import com.david.SecurityApi.exceptions.RecordAlreadyPresentException;
+import com.david.SecurityApi.exceptions.RecordNotFoundException;
 import com.david.SecurityApi.model.OauthClientDetails;
+import com.david.SecurityApi.model.Role;
+import com.david.SecurityApi.model.RoleUser;
 import com.david.SecurityApi.model.User;
 import com.david.SecurityApi.repository.UserRepository;
 import com.david.SecurityApi.service.OauthService;
@@ -13,6 +17,7 @@ import io.swagger.annotations.ApiOperation;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,10 +28,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.modelmapper.ModelMapper;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/v1/user")
@@ -132,4 +135,132 @@ public class UserController {
         }
     }
 
+//    @ApiOperation("To edit user details")
+//    @PutMapping("/edit/user")
+//    public ResponseEntity editUser(@RequestBody User userRecord, @PathVariable("id") Long id){
+//        Optional<User> u = oauthService.findUserById(id).map(record->{
+//            User user = new User();
+//            user.setEmail(userRecord.getEmail());
+//            user.setFirstName(userRecord.getFirstName());
+//            user.setLastName(userRecord.getLastName());
+//            user.setMiddleName(userRecord.getMiddleName());
+//            user.setPhone(userRecord.getPhone());
+//            userRecord.setUsername(userRecord.getUsername());
+//            userRecord.setPassword(userRecord.getPassword());
+//            return oauthService.saveUser(record);
+//        });
+//        return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Success));
+//    }
+
+    @ApiOperation("To add role to user")
+    @PostMapping(value = "/add/userRole", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity addUserRole(@RequestBody User user){
+        Set<Role> roleList = user.getRoles().stream().distinct().collect(Collectors.toSet());
+        user.setRoles(roleList);
+        User savedUserRole  = oauthService.saveUser(user);
+        return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Success, savedUserRole));
+    }
+
+    @ApiOperation("To save roles")
+    @PostMapping("add/role")
+    public ResponseEntity addRoles(@RequestBody Role role){
+
+        //check if role name already exist
+        Optional<Role> checkRole = oauthService.findRoleByName(role.getName());
+
+        if(checkRole.isPresent()){
+            return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Failed, CustomMessages.AlreadyExist));
+        }
+
+        //if doesn;t exist, add role name records
+        Role roles = oauthService.saveRole(role);
+        return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Success, roles));
+    }
+
+    @ApiOperation("To edit role")
+    @PutMapping("/edit/role")
+    public ResponseEntity editRoles(@RequestBody Role role){
+
+        //find the role id to be edited
+        Optional<Role> r = oauthService.findRoleById(role.getId());
+
+        if(r.isPresent()){
+            r.get().setName(role.getName());
+            Role roles = oauthService.saveRole(r.get());
+            return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Success, roles));
+        }
+        return ResponseEntity.ok(new ApiResponse<>(CustomMessages.NotFound, "Role to edit not found"));
+    }
+
+    @ApiOperation("Delete role by id")
+    @DeleteMapping("/role/delete/{id}")
+    public ResponseEntity<?> deleteRole(@PathVariable ("id") Long id){
+
+        //find the role to be deleted by the role_id
+        return oauthService.findRoleById(id).map(record-> {
+            oauthService.deleteUserRole(id);
+            return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Deleted, CustomMessages.DeletedMessage));
+        }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(CustomMessages.NotFoundMessage)));
+    }
+
+    @ApiOperation("To return list of all roles")
+    @GetMapping("/list/role")
+    public List<Role> getAllRoles(){
+        List<Role> roleList = oauthService.findAllRoles();
+        return roleList;
+    }
+
+    @ApiOperation("Get user by Id")
+    @GetMapping("/user/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable("id") Long id){
+        Optional<User> user = oauthService.getUserById(id);
+
+        if(user.isPresent()){
+            return new ResponseEntity<>(user.get(), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @ApiOperation("To delete a user byId")
+    @DeleteMapping("/user/{id}")
+    public ResponseEntity deleteUserById(@PathVariable ("id") Long id){
+        oauthService.deleteUserById(id);
+        return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Deleted, CustomMessages.DeletedMessage));
+    }
+
+    @ApiOperation("To return list of all users")
+    @GetMapping("/list/user")
+    public List<User> getAllUsers(){
+        return oauthService.findAll();
+    }
+
+    @ApiOperation("To delete role assigned to a user")
+    @DeleteMapping("/deleteAsignedRole/{userId}/{roleId}")
+    public ResponseEntity deleteAsignedRole(@PathVariable ("userId") Long userId, @PathVariable ("roleId") Long roleId ){
+
+        Optional<RoleUser> ru = oauthService.findRoleUserById(userId, roleId);
+
+        if (ru.isPresent()){
+            oauthService.deleteRoleUser(ru.get());
+            return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Deleted, CustomMessages.DeletedMessage));
+        }
+        return ResponseEntity.ok(new ApiResponse<>(CustomMessages.NotFound, CustomMessages.NotFoundMessage));
+    }
+
+    @ApiOperation("To add a role to a user")
+    @PostMapping("assign/role/user")
+    public ResponseEntity addRoleToUser(@RequestParam ("userId") Long userId, @RequestParam ("roleId") Long roleId){
+
+        Optional<User> searchedUser = oauthService.findUserById(userId);
+        Optional<Role> searchedRole = oauthService.findRoleById(roleId);
+
+        RoleUser ru = new RoleUser();
+        ru.setUserId(searchedUser.get());
+        ru.setRoleId(searchedRole.get());
+
+        RoleUser savedRu = oauthService.saveRoleUser(ru);
+
+        return ResponseEntity.ok(new ApiResponse<>(CustomMessages.Success, savedRu));
+
+    }
 }

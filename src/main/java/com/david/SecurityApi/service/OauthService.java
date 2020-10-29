@@ -1,9 +1,6 @@
 package com.david.SecurityApi.service;
 
-import com.david.SecurityApi.model.OauthClientDetails;
-import com.david.SecurityApi.model.Permission;
-import com.david.SecurityApi.model.Role;
-import com.david.SecurityApi.model.User;
+import com.david.SecurityApi.model.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -33,4 +30,18 @@ public interface OauthService {
     public void deleteUserRole(Long id);
 
     Optional<User> findUserById(Long id);
+
+    Optional<Role> findRoleByName(String name);
+
+    Optional<Role> findRoleById(Long id);
+
+    Optional<User> getUserById(Long id);
+
+    public void deleteUserById(Long id);
+
+    Optional<RoleUser> findRoleUserById(Long userId, Long roleId);
+
+    public void deleteRoleUser(RoleUser roleUser);
+
+    public RoleUser saveRoleUser(RoleUser roleUser);
 }

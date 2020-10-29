@@ -1,13 +1,7 @@
 package com.david.SecurityApi.service;
 
-import com.david.SecurityApi.model.OauthClientDetails;
-import com.david.SecurityApi.model.Permission;
-import com.david.SecurityApi.model.Role;
-import com.david.SecurityApi.model.User;
-import com.david.SecurityApi.repository.OauthClientDetailsRepo;
-import com.david.SecurityApi.repository.PermissionRepository;
-import com.david.SecurityApi.repository.RoleRepository;
-import com.david.SecurityApi.repository.UserRepository;
+import com.david.SecurityApi.model.*;
+import com.david.SecurityApi.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +22,9 @@ public class OauthServiceImpl implements OauthService {
 
     @Autowired
     OauthClientDetailsRepo oauthClientDetailsRepo;
+
+    @Autowired
+    RoleUserRepository roleUserRepo;
 
     @Override
     public User saveUser(User user) {
@@ -82,5 +79,40 @@ public class OauthServiceImpl implements OauthService {
     @Override
     public Optional<User> findUserById(Long id) {
         return userRepo.findById(id);
+    }
+
+    @Override
+    public Optional<Role> findRoleByName(String name) {
+        return roleRepo.findRoleByName(name);
+    }
+
+    @Override
+    public Optional<Role> findRoleById(Long id) {
+        return roleRepo.findById(id);
+    }
+
+    @Override
+    public Optional<User> getUserById(Long id) {
+        return userRepo.findById(id);
+    }
+
+    @Override
+    public void deleteUserById(Long id) {
+        userRepo.deleteUserById(id);
+    }
+
+    @Override
+    public Optional<RoleUser> findRoleUserById(Long userId, Long roleId) {
+        return roleUserRepo.findByUserIdAndRoleId(userId, roleId);
+    }
+
+    @Override
+    public void deleteRoleUser(RoleUser roleUser) {
+        roleUserRepo.delete(roleUser);
+    }
+
+    @Override
+    public RoleUser saveRoleUser(RoleUser roleUser) {
+        return roleUserRepo.save(roleUser);
     }
 }
